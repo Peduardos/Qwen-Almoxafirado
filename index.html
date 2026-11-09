@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Almoxarifado</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Container de Notificações (Toasts) -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Modal de Confirmação Customizado -->
+    <div id="modalConfirmacao" class="modal">
+        <div class="modal-content modal-confirm">
+            <div class="modal-header">
+                <h3 id="confirmTitle">Confirmação</h3>
+            </div>
+            <div class="modal-body">
+                <div class="confirm-icon" id="confirmIcon">⚠️</div>
+                <p id="confirmMessage" class="confirm-message"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btnConfirmCancelar">Cancelar</button>
+                <button type="button" class="btn-danger" id="btnConfirmOk">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tela de Login -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <h1>Sistema de Almoxarifado</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Usuário:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <div id="errorMessage" class="error-message"></div>
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Área Principal da Aplicação -->
+    <div id="appScreen" class="app-container" style="display: none;">
+        <header class="app-header">
+            <button class="menu-toggle" id="menuToggle" aria-label="Menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <h2>Sistema de Almoxarifado</h2>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button id="logoutBtn" class="btn-logout">Sair</button>
+            </div>
+        </header>
+        
+        <!-- Menu de Navegação -->
+        <nav class="app-nav" id="appNav">
+            <button class="nav-btn active" data-screen="dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+            </button>
+            <button class="nav-btn" data-screen="produtos">
+                <span class="nav-icon">📦</span>
+                <span class="nav-text">Produtos</span>
+            </button>
+            <button class="nav-btn" data-screen="estoque">
+                <span class="nav-icon">📋</span>
+                <span class="nav-text">Estoque</span>
+            </button>
+            <button class="nav-btn" data-screen="movimentacoes">
+                <span class="nav-icon">📜</span>
+                <span class="nav-text">Movimentações</span>
+            </button>
+        </nav>
+
+        <main class="app-main">
+            <!-- Dashboard -->
+            <div id="dashboardScreen" class="screen active">
+                <div class="screen-header">
+                    <h3>Dashboard</h3>
+                </div>
+                
+                <!-- Cards de Estatísticas -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="totalProdutos">0</div>
+                            <div class="stat-label">Produtos Cadastrados</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="totalItensEstoque">0</div>
+                            <div class="stat-label">Itens em Estoque</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card stat-warning clickable" onclick="irParaProdutosComFiltro('baixo')">
+                        <div class="stat-icon">⚠️</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="estoqueBaixo">0</div>
+                            <div class="stat-label">Estoque Baixo</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card stat-danger clickable" onclick="irParaProdutosComFiltro('sem_estoque')">
+                        <div class="stat-icon">❌</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="semEstoque">0</div>
+                            <div class="stat-label">Sem Estoque</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Alertas de Estoque -->
+                <div id="painelAlertasEstoque" class="alertas-estoque-container" style="display: none;">
+                    <div class="alertas-header">
+                        <h4>🚨 Alertas de Estoque</h4>
+                        <span class="alertas-contador" id="alertasContador"></span>
+                    </div>
+                    <div class="alertas-lista" id="alertasLista"></div>
+                </div>
+
+                <!-- Acesso Rápido -->
+                <div class="quick-access">
+                    <h4>Acesso Rápido</h4>
+                    <div class="quick-access-grid">
+                        <button class="quick-btn admin-only" data-goto="produtos">
+                            <span class="quick-icon">📋</span>
+                            <span>Cadastrar Produto</span>
+                        </button>
+                        <button class="quick-btn" data-goto="estoque">
+                            <span class="quick-icon">📦</span>
+                            <span>Consultar Estoque</span>
+                        </button>
+                        <button class="quick-btn admin-only" data-goto="estoque">
+                            <span class="quick-icon">➕</span>
+                            <span>Registrar Entrada</span>
+                        </button>
+                        <button class="quick-btn admin-only" data-goto="estoque">
+                            <span class="quick-icon">➖</span>
+                            <span>Registrar Saída</span>
+                        </button>
+                        <button class="quick-btn" data-goto="movimentacoes">
+                            <span class="quick-icon">📜</span>
+                            <span>Ver Movimentações</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Movimentações Recentes -->
+                <div class="recent-movements">
+                    <h4>Movimentações Recentes</h4>
+                    <div class="movements-list" id="recentMovementsList">
+                        <p class="empty-message">Nenhuma movimentação registrada ainda.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Produtos -->
+            <div id="produtosScreen" class="screen">
+                <div class="screen-header">
+                    <h3>Gerenciamento de Produtos</h3>
+                    <button class="btn-primary admin-only" id="btnNovoProduto">Novo Produto</button>
+                </div>
+                
+                <!-- Área de Filtros -->
+                <div class="filters-container">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="filtroPesquisa">Pesquisar:</label>
+                            <input type="text" id="filtroPesquisa" placeholder="Nome ou código do produto">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroCategoria">Categoria:</label>
+                            <select id="filtroCategoria">
+                                <option value="">Todas as categorias</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroSituacao">Situação do Estoque:</label>
+                            <select id="filtroSituacao">
+                                <option value="">Todas as situações</option>
+                                <option value="normal">Normal</option>
+                                <option value="baixo">Estoque Baixo</option>
+                                <option value="sem_estoque">Sem Estoque</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroOrdenacao">Ordenar por:</label>
+                            <select id="filtroOrdenacao">
+                                <option value="nome_asc">Nome (A-Z)</option>
+                                <option value="nome_desc">Nome (Z-A)</option>
+                                <option value="codigo_asc">Código (A-Z)</option>
+                                <option value="codigo_desc">Código (Z-A)</option>
+                                <option value="quantidade_asc">Quantidade (Menor-Maior)</option>
+                                <option value="quantidade_desc">Quantidade (Maior-Menor)</option>
+                                <option value="categoria_asc">Categoria (A-Z)</option>
+                                <option value="categoria_desc">Categoria (Z-A)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="filters-actions">
+                        <button class="btn-secondary" id="btnLimparFiltros">Limpar Filtros</button>
+                        <span class="filter-results-count" id="filterResultsCount"></span>
+                    </div>
+                </div>
+                
+                <div class="screen-content">
+                    <div id="produtosList">
+                        <p>Lista de produtos será exibida aqui.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Estoque -->
+            <div id="estoqueScreen" class="screen">
+                <div class="screen-header">
+                    <h3>Controle de Estoque</h3>
+                    <div class="action-buttons">
+                        <button class="btn-success admin-only" id="btnEntrada">Registrar Entrada</button>
+                        <button class="btn-warning admin-only" id="btnSaida">Registrar Saída</button>
+                    </div>
+                </div>
+                
+                <!-- Banner de Alerta de Estoque -->
+                <div id="bannerAlertaEstoque" class="banner-alerta" style="display: none;">
+                    <div class="banner-alerta-content">
+                        <span class="banner-alerta-icon">⚠️</span>
+                        <div class="banner-alerta-text">
+                            <strong>Atenção!</strong> Existem produtos com situação crítica no estoque.
+                            <span id="bannerAlertaDetalhes"></span>
+                        </div>
+                        <button class="btn-sm btn-primary" onclick="verProdutosCriticos()">Ver Detalhes</button>
+                    </div>
+                </div>
+                
+                <div class="screen-content">
+                    <div id="estoqueList">
+                        <p>Informações de estoque serão exibidas aqui.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tela de Movimentações -->
+            <div id="movimentacoesScreen" class="screen">
+                <div class="screen-header">
+                    <h3>Histórico de Movimentações</h3>
+                </div>
+                
+                <!-- Área de Filtros de Movimentações -->
+                <div class="filters-container">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label for="filtroMovTipo">Tipo de Movimentação:</label>
+                            <select id="filtroMovTipo">
+                                <option value="">Todas</option>
+                                <option value="entrada">Entradas</option>
+                                <option value="saida">Saídas</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroMovProduto">Produto:</label>
+                            <select id="filtroMovProduto">
+                                <option value="">Todos os produtos</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroMovUsuario">Usuário:</label>
+                            <select id="filtroMovUsuario">
+                                <option value="">Todos os usuários</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroMovOrdenacao">Ordenar por:</label>
+                            <select id="filtroMovOrdenacao">
+                                <option value="data_desc">Data (Mais recente)</option>
+                                <option value="data_asc">Data (Mais antiga)</option>
+                                <option value="produto_asc">Produto (A-Z)</option>
+                                <option value="produto_desc">Produto (Z-A)</option>
+                                <option value="quantidade_asc">Quantidade (Menor-Maior)</option>
+                                <option value="quantidade_desc">Quantidade (Maior-Menor)</option>
+                                <option value="tipo_asc">Tipo (Entrada primeiro)</option>
+                                <option value="tipo_desc">Tipo (Saída primeiro)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroMovDataInicio">Data Inicial:</label>
+                            <input type="date" id="filtroMovDataInicio">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label for="filtroMovDataFim">Data Final:</label>
+                            <input type="date" id="filtroMovDataFim">
+                        </div>
+                    </div>
+                    
+                    <div class="filters-actions">
+                        <button class="btn-secondary" id="btnLimparFiltrosMov">Limpar Filtros</button>
+                        <span class="filter-results-count" id="filterMovResultsCount"></span>
+                    </div>
+                </div>
+                
+                <!-- Resumo das Movimentações Filtradas -->
+                <div id="resumoMovimentacoes" class="resumo-movimentacoes" style="display: none;">
+                    <div class="resumo-item resumo-entradas">
+                        <div class="resumo-icon">➕</div>
+                        <div class="resumo-info">
+                            <div class="resumo-label">Total de Entradas</div>
+                            <div class="resumo-value" id="resumoTotalEntradas">0</div>
+                            <div class="resumo-sub" id="resumoQtdEntradas">0 itens</div>
+                        </div>
+                    </div>
+                    <div class="resumo-item resumo-saidas">
+                        <div class="resumo-icon">➖</div>
+                        <div class="resumo-info">
+                            <div class="resumo-label">Total de Saídas</div>
+                            <div class="resumo-value" id="resumoTotalSaidas">0</div>
+                            <div class="resumo-sub" id="resumoQtdSaidas">0 itens</div>
+                        </div>
+                    </div>
+                    <div class="resumo-item resumo-geral">
+                        <div class="resumo-icon">📊</div>
+                        <div class="resumo-info">
+                            <div class="resumo-label">Total Geral</div>
+                            <div class="resumo-value" id="resumoTotalGeral">0</div>
+                            <div class="resumo-sub" id="resumoQtdGeral">0 movimentações</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="screen-content">
+                    <div id="movimentacoesList">
+                        <p>Histórico de movimentações será exibido aqui.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal de Cadastro/Edição de Produto -->
+    <div id="modalProduto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Novo Produto</h3>
+                <button class="modal-close" id="btnFecharModal">&times;</button>
+            </div>
+            <form id="formProduto">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="codigoProduto">Código do Produto: *</label>
+                            <input type="text" id="codigoProduto" name="codigoProduto" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="nomeProduto">Nome: *</label>
+                            <input type="text" id="nomeProduto" name="nomeProduto" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="descricaoProduto">Descrição:</label>
+                        <textarea id="descricaoProduto" name="descricaoProduto" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="categoriaProduto">Categoria: *</label>
+                            <input type="text" id="categoriaProduto" name="categoriaProduto" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="localizacaoProduto">Localização: *</label>
+                            <input type="text" id="localizacaoProduto" name="localizacaoProduto" placeholder="Ex: Prateleira A, Setor 1" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="quantidadeInicial">Quantidade Inicial: *</label>
+                            <input type="number" id="quantidadeInicial" name="quantidadeInicial" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="estoqueMinimo">Estoque Mínimo: *</label>
+                            <input type="number" id="estoqueMinimo" name="estoqueMinimo" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div id="formErrorMessage" class="error-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btnCancelar">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Visualização de Produto -->
+    <div id="modalVisualizarProduto" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes do Produto</h3>
+                <button class="modal-close" id="btnFecharModalVisualizar">&times;</button>
+            </div>
+            <div class="modal-body" id="produtoDetalhes"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btnFecharVisualizar">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Entrada de Estoque -->
+    <div id="modalEntrada" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Registrar Entrada de Estoque</h3>
+                <button class="modal-close" id="btnFecharModalEntrada">&times;</button>
+            </div>
+            <form id="formEntrada">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="produtoEntrada">Produto: *</label>
+                        <select id="produtoEntrada" name="produtoEntrada" required>
+                            <option value="">Selecione um produto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quantidadeEntrada">Quantidade: *</label>
+                        <input type="number" id="quantidadeEntrada" name="quantidadeEntrada" min="1" required>
+                    </div>
+                    
+                    <div id="entradaErrorMessage" class="error-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btnCancelarEntrada">Cancelar</button>
+                    <button type="submit" class="btn-success">Registrar Entrada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Saída de Estoque -->
+    <div id="modalSaida" class="modal">
+        <div class="modal-content modal-small">
+            <div class="modal-header">
+                <h3>Registrar Saída de Estoque</h3>
+                <button class="modal-close" id="btnFecharModalSaida">&times;</button>
+            </div>
+            <form id="formSaida">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="produtoSaida">Produto: *</label>
+                        <select id="produtoSaida" name="produtoSaida" required>
+                            <option value="">Selecione um produto</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="quantidadeSaida">Quantidade: *</label>
+                        <input type="number" id="quantidadeSaida" name="quantidadeSaida" min="1" required>
+                    </div>
+                    
+                    <div id="saidaInfoEstoque" class="info-estoque"></div>
+                    <div id="saidaErrorMessage" class="error-message"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" id="btnCancelarSaida">Cancelar</button>
+                    <button type="submit" class="btn-warning">Registrar Saída</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
